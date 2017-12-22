@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+docker load -i ../../release/docker/harbor-jobservice.tar
+
+docker load -i ../../release/docker/harbor-nginx.tar
+
+docker load -i ../../release/docker/harbor-registry.tar
+
+docker load -i ../../release/docker/harbor-ui.tar
+
+docker load -i ../../release/docker/mysql.tar
+
+docker load -i ../../release/docker/ubuntu.tar

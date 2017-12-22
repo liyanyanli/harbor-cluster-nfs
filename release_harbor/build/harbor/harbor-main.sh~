@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+#example:./harbor-main.sh /mnt/1/release-HARBOR 192.168.112.128 smtp.exmail.qq.com 25 598892742@qq.com aaaa 598892742@qq.com 123
+
+cd $1/build/harbor
+
+#load docker images
+docker load -i ../../release/docker/harbor-jobservice.tar
+
+docker load -i ../../release/docker/harbor-nginx.tar
+
+docker load -i ../../release/docker/harbor-registry.tar
+
+docker load -i ../../release/docker/harbor-ui.tar
+
+docker load -i ../../release/docker/mysql.tar
+
+docker load -i ../../release/docker/ubuntu.tar
+
+#insecure-registry
+regitry='DOCKER_OPTS="--insecure-registry "'$2'""'
+
+echo $regitry >> /etc/default/docker
+
+service docker stop
+
+service docker start
+
+#change host ip
+sed 's/hostname = reg.mydomain.com/hostname = '$2'/' harbor.cfg > harborR.cfg
+
+#change email(email server)
+sed 's/email_server = smtp.mydomain.com/email_server = '$3'/' harborR.cfg > harbor.cfg
+
+#change email(email port)
+sed 's/email_server_port = 25/email_server_port = '$4'/' harbor.cfg > harborR.cfg
+
+#change email(email username)
+sed 's/email_username = sample_admin@mydomain.com/email_username = '$5'/' harborR.cfg > harbor.cfg
+
+#change email(email password)
+sed 's/email_password = abc/email_password = '$6'/' harbor.cfg > harborR.cfg
+
+#change email(email from)
+sed 's/email_from = admin <sample_admin@mydomain.com>/email_from = '$7'/' harborR.cfg > harbor.cfg
+
+#change admin password
+sed 's/harbor_admin_password = Harbor12345/harbor_admin_password = '$8'/' harbor.cfg > harborR.cfg
+
+cat harborR.cfg > harbor.cfg
+
+rm -rf harborR.cfg
+
+if [ ! -d "/root/.ssh/" ]
+then
+	mkdir /root/.ssh/
+fi
+
+if [ ! -f "/root/.ssh/authorized_keys" ]
+then
+  touch /root/.ssh/authorized_keys
+fi
+
+docker-compose down
+
+./prepare
+
+docker-compose up --build -d
+
+uiUUID=`docker ps | grep deploy_ui | awk -F ' ' '{print $1}'`
+
+docker exec -it $uiUUID rm -rf ~/.ssh/
+
+docker exec -it $uiUUID /usr/bin/ssh-keygen -t rsa -f ~/.ssh/id_rsa -P ''
+
+docker exec -it $uiUUID cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
+#mysqlUUID=`docker ps | grep harbor_mysql | awk -F ' ' '{print $1}'`
+
+#docker exec -it $mysqlUUID service mysql restart >/dev/null 2>&1
+
+
+
+
